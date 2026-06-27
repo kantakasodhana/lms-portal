@@ -6,14 +6,17 @@ function getToday() {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-function getTimeWindow(now) {
-  const h = now.getHours();
-  const m = now.getMinutes();
-  const mins = h * 60 + m;
+function getISTMinutes(now) {
+  const utcMins = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return (utcMins + 330) % 1440; // UTC+5:30
+}
 
-  if (mins >= 570 && mins <= 630) return 'PRESENT';   // 9:30 - 10:30
-  if (mins > 630 && mins <= 660) return 'LATE';        // 10:30 - 11:00
-  return null;                                          // after 11:00
+function getTimeWindow(now) {
+  const mins = getISTMinutes(now);
+
+  if (mins >= 570 && mins <= 630) return 'PRESENT';   // 9:30 - 10:30 IST
+  if (mins > 630 && mins <= 660) return 'LATE';        // 10:30 - 11:00 IST
+  return null;                                          // after 11:00 IST
 }
 
 async function markAttendance(req, res) {

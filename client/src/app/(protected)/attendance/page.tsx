@@ -88,10 +88,8 @@ export default function AttendancePage() {
 
   if (isIntern) {
     const now = new Date();
-    const h = now.getHours();
-    const m = now.getMinutes();
-    const mins = h * 60 + m;
-    const canMark = mins >= 570 && mins <= 660 && !todayRecord;
+    const istMins = (now.getUTCHours() * 60 + now.getUTCMinutes() + 330) % 1440;
+    const canMark = istMins >= 570 && istMins <= 660 && !todayRecord;
 
     return (
       <div>
