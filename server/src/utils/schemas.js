@@ -165,6 +165,52 @@ const gradeSubmissionSchema = z.object({
   requestResubmit: z.boolean().optional(),
 });
 
+const createQuizSchema = z.object({
+  moduleId: z.string().min(1).optional(),
+  title: z.string().min(1, 'Title required'),
+  type: z.enum(['MCQ', 'CODING', 'SQL', 'CASE_STUDY']),
+  timeLimitMinutes: z.number().int().min(1).optional(),
+  maxRetakes: z.number().int().min(0).optional(),
+  scorePolicy: z.enum(['BEST', 'LAST']).optional(),
+  maxScore: z.number().int().min(1),
+  weekNumber: z.number().int().min(1).max(14).optional(),
+  questions: z.array(z.object({
+    questionType: z.enum(['MCQ_SINGLE', 'MCQ_MULTI', 'CODE_PYTHON', 'CODE_SQL', 'FREE_TEXT']),
+    question: z.string().min(1),
+    optionsJson: z.any().optional(),
+    correctAnswer: z.string().optional(),
+    testCasesJson: z.any().optional(),
+    points: z.number().int().min(1),
+  })).optional(),
+});
+
+const updateQuizSchema = z.object({
+  title: z.string().min(1).optional(),
+  type: z.enum(['MCQ', 'CODING', 'SQL', 'CASE_STUDY']).optional(),
+  timeLimitMinutes: z.number().int().min(1).nullable().optional(),
+  maxRetakes: z.number().int().min(0).optional(),
+  scorePolicy: z.enum(['BEST', 'LAST']).optional(),
+  maxScore: z.number().int().min(1).optional(),
+  weekNumber: z.number().int().nullable().optional(),
+  isPublished: z.boolean().optional(),
+});
+
+const addQuestionSchema = z.object({
+  questionType: z.enum(['MCQ_SINGLE', 'MCQ_MULTI', 'CODE_PYTHON', 'CODE_SQL', 'FREE_TEXT']),
+  question: z.string().min(1),
+  optionsJson: z.any().optional(),
+  correctAnswer: z.string().optional(),
+  testCasesJson: z.any().optional(),
+  points: z.number().int().min(1),
+});
+
+const submitAttemptSchema = z.object({
+  answers: z.array(z.object({
+    questionId: z.string().min(1),
+    answer: z.string(),
+  })),
+});
+
 module.exports = {
   loginSchema,
   changePasswordSchema,
@@ -187,4 +233,8 @@ module.exports = {
   createAssignmentSchema,
   updateAssignmentSchema,
   gradeSubmissionSchema,
+  createQuizSchema,
+  updateQuizSchema,
+  addQuestionSchema,
+  submitAttemptSchema,
 };

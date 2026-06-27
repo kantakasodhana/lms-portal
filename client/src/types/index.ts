@@ -152,6 +152,51 @@ export interface Submission {
   intern?: { id: string; name: string; email: string };
 }
 
+export type QuizType = 'MCQ' | 'CODING' | 'SQL' | 'CASE_STUDY';
+export type QuestionType = 'MCQ_SINGLE' | 'MCQ_MULTI' | 'CODE_PYTHON' | 'CODE_SQL' | 'FREE_TEXT';
+
+export interface Quiz {
+  id: string;
+  moduleId: string | null;
+  title: string;
+  type: QuizType;
+  timeLimitMinutes: number | null;
+  maxRetakes: number;
+  scorePolicy: 'BEST' | 'LAST';
+  maxScore: number;
+  weekNumber: number | null;
+  isPublished: boolean;
+  createdAt: string;
+  module?: { id: string; title: string; course?: { title: string; weekNumber: number } };
+  questions?: QuizQuestion[];
+  _count?: { questions: number; attempts: number };
+}
+
+export interface QuizQuestion {
+  id: string;
+  quizId: string;
+  questionType: QuestionType;
+  question: string;
+  optionsJson: string[] | null;
+  correctAnswer?: string;
+  testCasesJson: unknown;
+  points: number;
+  order: number;
+}
+
+export interface QuizAttempt {
+  id: string;
+  quizId: string;
+  internId: string;
+  answersJson: { questionId: string; answer: string; earned: number; maxPoints: number; autoGraded: boolean }[];
+  score: number | null;
+  maxScore: number | null;
+  attemptNumber: number;
+  startedAt: string;
+  submittedAt: string | null;
+  intern?: { id: string; name: string; email: string };
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

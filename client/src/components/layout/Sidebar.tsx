@@ -17,6 +17,7 @@ import {
   Calendar,
   MessageCircle,
   FileText,
+  Brain,
 } from 'lucide-react';
 
 const menuItems = {
@@ -29,6 +30,7 @@ const menuItems = {
     { href: '/standups', label: 'Standups', icon: MessageSquare },
     { href: '/tasks', label: 'Daily Tasks', icon: CheckSquare },
     { href: '/assignments', label: 'Assignments', icon: FileText },
+    { href: '/quizzes', label: 'Quizzes', icon: Brain },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/access', label: 'Access Control', icon: Lock },
     { href: '/discord', label: 'Discord', icon: MessageCircle },
@@ -41,6 +43,7 @@ const menuItems = {
     { href: '/standups', label: 'Standups', icon: MessageSquare },
     { href: '/tasks', label: 'Daily Tasks', icon: CheckSquare },
     { href: '/assignments', label: 'Assignments', icon: FileText },
+    { href: '/quizzes', label: 'Quizzes', icon: Brain },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/access', label: 'Access Control', icon: Lock },
     { href: '/discord', label: 'Discord', icon: MessageCircle },
@@ -52,6 +55,7 @@ const menuItems = {
     { href: '/standups', label: 'Standup', icon: MessageSquare },
     { href: '/tasks', label: 'My Tasks', icon: CheckSquare },
     { href: '/assignments', label: 'Assignments', icon: FileText },
+    { href: '/quizzes', label: 'Quizzes', icon: Brain },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/discord', label: 'Discord', icon: MessageCircle },
   ],

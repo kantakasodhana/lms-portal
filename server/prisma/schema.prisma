@@ -91,6 +91,9 @@ model User {
   submissions        Submission[]   @relation("InternSubmissions")
   gradedSubmissions  Submission[]   @relation("SubmissionGrader")
 
+  createdQuizzes     Quiz[]         @relation("QuizCreator")
+  quizAttempts       QuizAttempt[]  @relation("InternQuizAttempts")
+
   @@map("users")
 }
 
@@ -171,6 +174,7 @@ model Module {
   resources           Resource[]
   datasets            Dataset[]
   assignments         Assignment[]
+  quizzes             Quiz[]
   creator             User     @relation("ModuleCreator", fields: [createdBy], references: [id])
 
   @@map("modules")
@@ -415,6 +419,85 @@ model Submission {
   grader         User?            @relation("SubmissionGrader", fields: [gradedBy], references: [id])
 
   @@map("submissions")
+}
+
+// ─── Quizzes ─────────────────────────────────────────
+
+enum QuizType {
+  MCQ
+  CODING
+  SQL
+  CASE_STUDY
+}
+
+enum QuestionType {
+  MCQ_SINGLE
+  MCQ_MULTI
+  CODE_PYTHON
+  CODE_SQL
+  FREE_TEXT
+}
+
+enum ScorePolicy {
+  BEST
+  LAST
+}
+
+model Quiz {
+  id               String      @id @default(uuid())
+  moduleId         String?     @map("module_id")
+  title            String
+  type             QuizType
+  timeLimitMinutes Int?        @map("time_limit_minutes")
+  maxRetakes       Int         @default(0) @map("max_retakes")
+  scorePolicy      ScorePolicy @default(BEST) @map("score_policy")
+  maxScore         Int         @map("max_score")
+  weekNumber       Int?        @map("week_number")
+  isPublished      Boolean     @default(false) @map("is_published")
+  createdBy        String      @map("created_by")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  module           Module?     @relation(fields: [moduleId], references: [id])
+  creator          User        @relation("QuizCreator", fields: [createdBy], references: [id])
+  questions        QuizQuestion[]
+  attempts         QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id             String       @id @default(uuid())
+  quizId         String       @map("quiz_id")
+  questionType   QuestionType @map("question_type")
+  question       String
+  optionsJson    Json?        @map("options_json")
+  correctAnswer  String?      @map("correct_answer")
+  testCasesJson  Json?        @map("test_cases_json")
+  points         Int
+  order          Int          @default(0)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  quiz           Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id            String   @id @default(uuid())
+  quizId        String   @map("quiz_id")
+  internId      String   @map("intern_id")
+  answersJson   Json     @map("answers_json")
+  score         Float?
+  maxScore      Int?     @map("max_score")
+  attemptNumber Int      @default(1) @map("attempt_number")
+  startedAt     DateTime @default(now()) @map("started_at")
+  submittedAt   DateTime? @map("submitted_at")
+
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  intern        User     @relation("InternQuizAttempts", fields: [internId], references: [id])
+
+  @@map("quiz_attempts")
 }
 
 // ─── Notifications ───────────────────────────────────
