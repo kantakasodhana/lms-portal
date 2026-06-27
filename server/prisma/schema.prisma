@@ -1,0 +1,301 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MENTOR
+  INTERN
+}
+
+enum UserStatus {
+  INVITED
+  ONBOARDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CONVERTED
+  REMOVED
+}
+
+enum BatchStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum ContentType {
+  VIDEO
+  TEXT
+  PDF
+  CODE
+  NOTEBOOK
+}
+
+enum AccessEntityType {
+  MODULE
+  LESSON
+  FILE
+}
+
+// ─── Core ────────────────────────────────────────────
+
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  passwordHash    String     @map("password_hash")
+  name            String
+  role            Role       @default(INTERN)
+  avatarUrl       String?    @map("avatar_url")
+  status          UserStatus @default(INVITED)
+  forcePasswordChange Boolean @default(true) @map("force_password_change")
+  batchId         String?    @map("batch_id")
+  primaryMentorId String?    @map("primary_mentor_id")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  batch           Batch?     @relation(fields: [batchId], references: [id])
+  primaryMentor   User?      @relation("PrimaryMentor", fields: [primaryMentorId], references: [id])
+  mentees         User[]     @relation("PrimaryMentor")
+
+  mentorAssignments  MentorIntern[] @relation("MentorSide")
+  internAssignments  MentorIntern[] @relation("InternSide")
+
+  createdCourses     Course[]
+  createdResources   Resource[]
+  accessGrants       InternAccess[] @relation("InternAccessGrants")
+  unlockedBy         InternAccess[] @relation("UnlockedByUser")
+
+  refreshTokens      RefreshToken[]
+  notifications      Notification[]
+
+  createdModules     Module[]       @relation("ModuleCreator")
+  createdLessons     Lesson[]       @relation("LessonCreator")
+
+  datasets           Dataset[]      @relation("DatasetUploader")
+  setupCompletions   SetupCompletion[]
+  createdChecklists  SetupChecklist[] @relation("ChecklistCreator")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Batch {
+  id        String      @id @default(uuid())
+  name      String
+  startDate DateTime    @map("start_date")
+  endDate   DateTime    @map("end_date")
+  status    BatchStatus @default(ACTIVE)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  users     User[]
+
+  @@map("batches")
+}
+
+model MentorIntern {
+  id         String   @id @default(uuid())
+  mentorId   String   @map("mentor_id")
+  internId   String   @map("intern_id")
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  mentor     User     @relation("MentorSide", fields: [mentorId], references: [id])
+  intern     User     @relation("InternSide", fields: [internId], references: [id])
+
+  @@unique([mentorId, internId])
+  @@map("mentor_interns")
+}
+
+// ─── Curriculum ──────────────────────────────────────
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String?
+  weekNumber  Int      @map("week_number")
+  order       Int      @default(0)
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  creator     User     @relation(fields: [createdBy], references: [id])
+  modules     Module[]
+
+  @@map("courses")
+}
+
+model Module {
+  id                  String   @id @default(uuid())
+  courseId             String   @map("course_id")
+  title               String
+  description         String?
+  order               Int      @default(0)
+  estimatedDuration   Int?     @map("estimated_duration")
+  prerequisiteModuleId String? @map("prerequisite_module_id")
+  createdBy           String   @map("created_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  course              Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisite        Module?  @relation("ModulePrerequisite", fields: [prerequisiteModuleId], references: [id])
+  dependents          Module[] @relation("ModulePrerequisite")
+  lessons             Lesson[]
+  resources           Resource[]
+  datasets            Dataset[]
+  creator             User     @relation("ModuleCreator", fields: [createdBy], references: [id])
+
+  @@map("modules")
+}
+
+model Lesson {
+  id          String      @id @default(uuid())
+  moduleId    String      @map("module_id")
+  title       String
+  contentType ContentType @map("content_type")
+  content     String?
+  fileUrl     String?     @map("file_url")
+  duration    Int?
+  order       Int         @default(0)
+  createdBy   String      @map("created_by")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  module      Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  versions    ContentVersion[]
+  creator     User        @relation("LessonCreator", fields: [createdBy], references: [id])
+
+  @@map("lessons")
+}
+
+model ContentVersion {
+  id        String   @id @default(uuid())
+  lessonId  String   @map("lesson_id")
+  content   String
+  editedBy  String   @map("edited_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@map("content_versions")
+}
+
+model Resource {
+  id        String   @id @default(uuid())
+  title     String
+  url       String
+  type      String
+  moduleId  String?  @map("module_id")
+  shared    Boolean  @default(false)
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  module    Module?  @relation(fields: [moduleId], references: [id])
+  creator   User     @relation(fields: [createdBy], references: [id])
+
+  @@map("resources")
+}
+
+// ─── Access Control ──────────────────────────────────
+
+model InternAccess {
+  id          String           @id @default(uuid())
+  internId    String           @map("intern_id")
+  entityType  AccessEntityType @map("entity_type")
+  entityId    String           @map("entity_id")
+  locked      Boolean          @default(true)
+  unlockedById String?         @map("unlocked_by")
+  unlockedAt  DateTime?        @map("unlocked_at")
+
+  intern      User             @relation("InternAccessGrants", fields: [internId], references: [id])
+  unlockedByUser User?         @relation("UnlockedByUser", fields: [unlockedById], references: [id])
+
+  @@unique([internId, entityType, entityId])
+  @@map("intern_access")
+}
+
+// ─── Datasets ────────────────────────────────────────
+
+model Dataset {
+  id          String   @id @default(uuid())
+  moduleId    String?  @map("module_id")
+  name        String
+  description String?
+  format      String
+  fileUrl     String   @map("file_url")
+  sizeBytes   Int?     @map("size_bytes")
+  source      String?
+  version     String?  @default("1.0")
+  uploadedBy  String   @map("uploaded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  module      Module?  @relation(fields: [moduleId], references: [id])
+  uploader    User     @relation("DatasetUploader", fields: [uploadedBy], references: [id])
+
+  @@map("datasets")
+}
+
+// ─── Setup Guides ────────────────────────────────────
+
+model SetupChecklist {
+  id         String   @id @default(uuid())
+  weekNumber Int      @map("week_number")
+  title      String
+  stepsJson  Json     @map("steps_json")
+  tools      String
+  createdBy  String   @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  creator    User     @relation("ChecklistCreator", fields: [createdBy], references: [id])
+  completions SetupCompletion[]
+
+  @@map("setup_checklists")
+}
+
+model SetupCompletion {
+  id          String   @id @default(uuid())
+  internId    String   @map("intern_id")
+  checklistId String   @map("checklist_id")
+  completed   Boolean  @default(false)
+  verifiedAt  DateTime? @map("verified_at")
+
+  intern      User     @relation(fields: [internId], references: [id])
+  checklist   SetupChecklist @relation(fields: [checklistId], references: [id])
+
+  @@unique([internId, checklistId])
+  @@map("setup_completions")
+}
+
+// ─── Notifications ───────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
